@@ -25,20 +25,12 @@ def reshape(A, idx, size=256):
     #print('after reshape: ', np.sum(A))
     return A
 
-def get_norm(data):
-    return (data - np.min(data)) / (np.max(data) - np.min(data))
-
-def save_data(R, G, B, idx, fn_data, size=256):
-    R = reshape(R, idx, size)
-    G = reshape(G, idx, size)
-    B = reshape(B, idx, size)
+def save_data(R, G, B, fn_head):
+    tif_fn_data = data_dir + 'data/{}.tif'.format(fn_head)
     layers = np.dstack([R, G, B])
     total = np.sum(R) + np.sum(G) + np.sum(B)
-    skimage.io.imsave(fn_data, layers)
+    skimage.io.imsave(tif_fn_data, layers)
     return True
-
-def normalize(data):
-    return (data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data))
 
 def get_rand_center(idx, img_shape, size=256):
     d = int(size/4)
@@ -62,35 +54,33 @@ def find_closest_pt(pt_x, pt_y, x, y):
         return None
 
 def get_centroid(center, x, y, img_shape):
+    x = np.tile(x, (len(y),1))
+    y = np.tile(y, (len(x),1)).T
     pt_x = center[0]
     pt_y = center[1]
     idx = find_closest_pt(pt_x, pt_y, x, y)
-    if idx:
-        rand_idx = get_rand_center(idx, img_shape, size=256)
-        return idx, rand_idx
-    else:
-        return None, None
-def plot_coords(lat, lon, idx, tif_fn):
-    lat_coords = reshape(lat, idx)
-    lon_coords = reshape(lon, idx)
-    coords_layers = np.dstack([lat_coords, lon_coords])
-    skimage.io.imsave(tif_fn, coords_layers)
+
+    return idx
+def save_coords(lat, lon, fn_head):
+    tif_fn_coords = data_dir + 'coords/{}.tif'.format(fn_head)
+    coords_layers = np.dstack([lat, lon])
+    skimage.io.imsave(tif_fn_coords, coords_layers)
     #print(coords_layers)
 
 
 def get_extent(center):
     print(center)
-    x0 = center[0] - 2.5e5
-    y0 = center[1] - 2.5e5
-    x1 = center[0] + 2.5e5
-    y1 = center[1] + 2.5e5
+    x0 = center[0] - 1.28e5
+    y0 = center[1] - 1.28e5
+    x1 = center[0] + 1.28e5
+    y1 = center[1] + 1.28e5
     return [x0, y0, x1, y1]
 
 def get_scn(fns, extent):
     print(fns)
     scn = Scene(reader='abi_l1b', filenames=fns)
 
-    scn.load(['cimss_true_color_sunz_rayleigh'], generate=False)
+    scn.load(['cimss_true_color_sunz_rayleigh', 'C01', 'C02', 'C03'], generate=False)
     my_area = create_area_def(area_id='lccCONUS',
                               description='Lambert conformal conic for the contiguous US',
                               projection="+proj=lcc +lat_1=33 +lat_2=45 +lat_0=39 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs",
@@ -120,35 +110,33 @@ def create_data(sat_fns, lat, lon, remove_goes_files=False):
 
     x = scn['cimss_true_color_sunz_rayleigh'].coords['x']
     y = scn['cimss_true_color_sunz_rayleigh'].coords['y']
+    print('xshpae', x.shape)
     lon, lat = scn['cimss_true_color_sunz_rayleigh'].attrs['area'].get_lonlats()
 
+
     corr_data = scn.save_dataset('cimss_true_color_sunz_rayleigh', compute=False)
+    
     img_shape = scn['cimss_true_color_sunz_rayleigh'].shape
 
     R = corr_data[0][0]
     G = corr_data[0][1]
     B = corr_data[0][2]
+#    R = scn['cimss_true_color_sunz_rayleigh'].values[0] 
+#    G = scn['cimss_true_color_sunz_rayleigh'].values[1] 
+#    B = scn['cimss_true_color_sunz_rayleigh'].values[2] 
 
-    R = get_norm(R)
-    G = get_norm(G)
-    B = get_norm(B)
+    idx = get_centroid(center, x, y, img_shape)
 
-    xx = np.tile(x, (len(y),1))
-    yy = np.tile(y, (len(x),1)).T
-
-    cent, idx = get_centroid(center, xx, yy, img_shape)
-
-    if cent:
-        tif_fn_data = data_dir + 'data/{}.tif'.format(fn_head)
-        tif_fn_coords = data_dir + 'coords/{}.tif'.format(fn_head)
-        data_saved = save_data(R, G, B, idx, tif_fn_data)
-        print(data_saved)
-        if data_saved:
-            plot_coords(lat, lon, idx, tif_fn_coords)
-            if remove_goes_files:
-                remove_goes(fn_head)
-            remove_tif(fn_head)
-    return fn_head
+    tif_fn_data = data_dir + 'data/{}.tif'.format(fn_head)
+    print(R.shape)
+    print(G.shape)
+    data_saved = save_data(R, G, B, fn_head)
+    if data_saved:
+        save_coords(lat, lon, fn_head)
+        if remove_goes_files:
+            remove_goes(fn_head)
+        #remove_tif(fn_head)
+    return fn_head, scn
 
 
 def remove_tif(fn_head):
@@ -167,7 +155,7 @@ def remove_goes(fn_head):
 
 
 def main(goes_fns, lat, lon):
-    fn_head = create_data(goes_fns, lat, lon)
+    fn_head, scn = create_data(goes_fns, lat, lon)
 
 
 #if __name__ == '__main__':
@@ -176,7 +164,7 @@ def main(goes_fns, lat, lon):
 
 if __name__ == '__main__':
     input_dt = '2023/09/24 11:00'
-    goes_fns = ['./data/goes/OR_ABI-L1b-RadC-M6C01_G16_s20232672101174_e20232672103547_c20232672103581.nc', './data/goes/OR_ABI-L1b-RadC-M6C02_G16_s20232672101174_e20232672103547_c20232672103575.nc', './data/goes/OR_ABI-L1b-RadC-M6C03_G16_s20232672101174_e20232672103547_c20232672103595.nc']
+    goes_fns = ['../data/goes/OR_ABI-L1b-RadC-M6C01_G16_s20232672101174_e20232672103547_c20232672103581.nc', '../data/goes/OR_ABI-L1b-RadC-M6C02_G16_s20232672101174_e20232672103547_c20232672103575.nc', '../data/goes/OR_ABI-L1b-RadC-M6C03_G16_s20232672101174_e20232672103547_c20232672103595.nc']
     lon = '-105.27'
     lat = '40.0'
     main(goes_fns, lat, lon)

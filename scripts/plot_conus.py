@@ -102,6 +102,7 @@ def plot_data(input_dt):
     plt.savefig('conus.png')
 
     plt.show()
+    return new_scn
 
 def main(input_dt):
     plot_data(input_dt)
