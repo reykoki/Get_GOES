@@ -24,7 +24,10 @@ def save_coords(lat, lon, fn_head):
     coords_layers = np.dstack([lat, lon])
     skimage.io.imsave(tif_fn_coords, coords_layers)
 
-def get_extent(center):
+def get_extent(lat, lon):
+    lcc_str = "+proj=lcc +lat_1=33 +lat_2=45 +lat_0=39 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
+    lcc_proj = pyproj.Proj(lcc_str)
+    center = lcc_proj(lon,lat)
     x0 = center[0] - 1.28e5
     y0 = center[1] - 1.28e5
     x1 = center[0] + 1.28e5
@@ -44,7 +47,6 @@ def get_scn(fns, extent, composites):
     new_scn = scn.resample(my_area)
     return new_scn
 
-
 def save_composite(composite, scn, fn_head):
     corr_data = scn.save_dataset(composite, compute=False)
     print(corr_data)
@@ -55,29 +57,23 @@ def save_composite(composite, scn, fn_head):
 
 def create_data(sat_fns, lat, lon, remove_goes_files=False):
     fn_head = 'G' + sat_fns[0].split('_G')[-1].split('_c')[0]+'_'+lat+'_'+lon
-    composites = ['cimss_true_color_sunz_rayleigh']
-    composites = ['airmass']
-    lcc_str = "+proj=lcc +lat_1=33 +lat_2=45 +lat_0=39 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs"
-    lcc_proj = pyproj.Proj(lcc_str)
-    center = lcc_proj(lon,lat)
-    extent = get_extent(center)
+    composites = ['cimss_true_color_sunz_rayleigh', 'airmass']
+    extent = get_extent(lat, lon)
     scn = get_scn(sat_fns, extent, composites)
-    x = scn[composites[0]].coords['x']
-    y = scn[composites[0]].coords['y']
     lon, lat = scn[composites[0]].attrs['area'].get_lonlats()
     for composite in composites:
         save_composite(composite, scn, fn_head)
     save_coords(lat, lon, fn_head)
     if remove_goes_files:
         remove_goes(fn_head)
-        #remove_tif(fn_head)
+    #remove_tif(fn_head)
     return fn_head, scn
 
 # remove the tif files created during corrections
 def remove_tif(fn_head):
     s = fn_head.split('s')[1][:13]
     dt = pytz.utc.localize(datetime.strptime(s, '%Y%j%H%M%S'))
-    tif_fn = glob.glob('cimss_true_color_sunz_rayleigh_{}{}{}_{}{}{}.tif'.format(dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), dt.strftime('%H'), dt.strftime('%M'), dt.strftime('%S')))
+    tif_fn = glob.glob('*_{}{}{}_{}{}{}.tif'.format(dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), dt.strftime('%H'), dt.strftime('%M'), dt.strftime('%S')))
     if tif_fn:
         os.remove(tif_fn[0])
 
