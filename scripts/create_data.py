@@ -63,7 +63,7 @@ def create_composite(sat_fns, lat, lon, remove_goes_files=False):
     save_coords(lat, lon, fn_head)
     if remove_goes_files:
         remove_goes(fn_head)
-    #remove_tif(fn_head)
+    remove_tif(fn_head)
     return fn_head, scn
 
 def get_bands_from_fns(fns):
@@ -90,9 +90,10 @@ def create_raw(sat_fns, lat, lon, remove_goes_files=False):
 def remove_tif(fn_head):
     s = fn_head.split('s')[1][:13]
     dt = pytz.utc.localize(datetime.strptime(s, '%Y%j%H%M%S'))
-    tif_fn = glob.glob('*_{}{}{}_{}{}{}.tif'.format(dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), dt.strftime('%H'), dt.strftime('%M'), dt.strftime('%S')))
-    if tif_fn:
-        os.remove(tif_fn[0])
+    tif_fns = glob.glob('*_{}{}{}_{}{}{}.tif'.format(dt.strftime('%Y'), dt.strftime('%m'), dt.strftime('%d'), dt.strftime('%H'), dt.strftime('%M'), dt.strftime('%S')))
+    if tif_fns:
+        for fn in tif_fns:
+            os.remove(fn)
 
 # remove large satellite files
 def remove_goes(fn_head):
@@ -101,8 +102,8 @@ def remove_goes(fn_head):
         os.remove(fn)
 
 def main(goes_fns, lat, lon):
-    #fn_head, scn = create_composite(goes_fns, lat, lon)
-    fn_head, scn = create_raw(goes_fns, lat, lon)
+    fn_head, scn = create_composite(goes_fns, lat, lon)
+    #fn_head, scn = create_raw(goes_fns, lat, lon)
 
 if __name__ == '__main__':
     input_dt = '2023/09/24 11:00'
