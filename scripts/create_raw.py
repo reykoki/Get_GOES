@@ -82,8 +82,6 @@ def get_bands_from_fns(fns):
     return bands
 
 def get_scn(fns, bands, extent):
-    print(fns)
-    print(bands)
     scn = Scene(reader='abi_l1b', filenames=fns)
     scn.load(bands, generate=False)
     my_area = create_area_def(area_id='lccCONUS',
@@ -98,6 +96,7 @@ def get_scn(fns, bands, extent):
 
     new_scn = scn.resample(my_area)
     return scn, new_scn
+
 def get_fn_head(band, sat_fns, lat, lon):
     matching_band_fn = [s for s in sat_fns if band in s]
     fn_head = matching_band_fn.split(band).split('_c')+'_'+lat+'_'+lon
@@ -157,8 +156,12 @@ def main(goes_fns, lat, lon):
 
 if __name__ == '__main__':
     input_dt = '2023/09/24 11:00'
-    goes_fns = ['./data/goes/OR_ABI-L1b-RadC-M6C01_G16_s20232672101174_e20232672103547_c20232672103581.nc', './data/goes/OR_ABI-L1b-RadC-M6C02_G16_s20232672101174_e20232672103547_c20232672103575.nc', './data/goes/OR_ABI-L1b-RadC-M6C03_G16_s20232672101174_e20232672103547_c20232672103595.nc']
     lon = '-105.27'
     lat = '40.0'
-    main(goes_fns, lat, lon)
+    input_start = '20232672101174'
+    sat_num = '16'
+    goes_fns = glob.glob('./data/goes/*_G{}_*s{}*.nc'.format(sat_num, input_start))
+    if goes_fns:
+        main(goes_fns, lat, lon)
 
+    #goes_fns = ['./data/goes/OR_ABI-L1b-RadC-M6C01_G16_s20232672101174_e20232672103547_c20232672103581.nc', './data/goes/OR_ABI-L1b-RadC-M6C02_G16_s20232672101174_e20232672103547_c20232672103575.nc', './data/goes/OR_ABI-L1b-RadC-M6C03_G16_s20232672101174_e20232672103547_c20232672103595.nc']
