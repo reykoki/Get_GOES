@@ -23,7 +23,7 @@ def get_first_closest_file(band, fns, dt, sat_num):
             best_end = s_e[1]
             best_fn = fn
     #fn_str = 'C{}_G{}_{}_{}'.format(band, sat_num, best_start, best_end)
-    fn_str = 'G{}_{}_{}'.format(sat_num, best_start, best_end)
+    fn_str = 'G{}_{}_{}'.format(sat_num, best_start, best_end[:-3])
     return best_fn, fn_str
 
 def get_additional_band_file(band, fn_str, fns):
@@ -32,7 +32,6 @@ def get_additional_band_file(band, fn_str, fns):
 
 def get_closest_file(fns, dt, sat_num, bands):
     use_fns = []
-    print(bands)
     band_init = 'C'+str(bands.pop(0)).zfill(2)
     best_band_fn, fn_str = get_first_closest_file(band_init, fns, dt, sat_num)
     use_fns.append(best_band_fn)
@@ -107,8 +106,10 @@ def get_dt(input_dt):
 def download_goes(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scope='C', check_sun=True, bands=[1,2,3]):
 
     dt = get_dt(input_dt)
+    # will check sunrise for specified lat/lon
     if check_sun and lat and lon:
         check_sunrise_sunset_lat_lon(dt, lat, lon)
+    # will check sunrise for CONUS
     elif check_sun:
         check_sunrise_sunset(dt)
 
@@ -148,5 +149,5 @@ def main(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scop
 
 if __name__ == '__main__':
     input_dt = '2023/09/24 21:00'
-    main(input_dt)
+    main(input_dt, bands=list(range(1,17)))
 
