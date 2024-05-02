@@ -9,7 +9,7 @@ pyresample
 pytz
 s3fs
 satpy
-skimage
+scikit-image
 suntime
 wget
 zarr
