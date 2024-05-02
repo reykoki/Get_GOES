@@ -1,6 +1,15 @@
-pip install wget
-pip install suntime
-pip install s3fs
-pip install pyresample
-pip install satpy
-pip install pyspectral
+cartopy
+geopandas
+matplotlib
+matplotlib
+numpy
+pandas
+pyproj
+pyresample
+pytz
+s3fs
+satpy
+skimage
+suntime
+wget
+zarr
