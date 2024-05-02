@@ -102,8 +102,7 @@ def get_dt(input_dt):
     dt = pytz.utc.localize(dt)
     return dt
 
-#def download_goes(input_dt, lat, lon, sat_num=16, product='ABI-L1b-Rad', scope='C', check_sun=True, bands=[1,2,3]):
-def download_goes(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scope='C', check_sun=True, bands=[1,2,3]):
+def download_goes(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scope='C', check_sun=True, bands=list(range(1,17))):
 
     dt = get_dt(input_dt)
     # will check sunrise for specified lat/lon
@@ -138,16 +137,21 @@ def main(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scop
     sat_nums = ['16', '17', '18']
     if sat_num not in sat_nums:
         raise ValueError('sat_num value of {} is invalid. choose 16 for GOES-EAST and 17 or 18 for GOES-WEST'.format(sat_num))
-    download_goes(input_dt, lat, lon, sat_num, product, scope, check_sun, bands)
+    return download_goes(input_dt, lat, lon, sat_num, product, scope, check_sun, bands)
+
 
 #if __name__ == '__main__':
-#    input_dt = sys.argv[1]
 #    lat = sys.argv[2]
 #    lon = sys.argv[3]
 #    sat_num = sys.argv[4]
 #    main(input_dt, lat, lon, sat_num)
 
 if __name__ == '__main__':
-    input_dt = '2023/09/24 21:00'
-    main(input_dt, bands=list(range(1,17)))
+    #input_dt = '2023/09/24 21:00'
+    input_dt = sys.argv[1]
+    if len(sys.argv) > 2:
+        bands = sys.argv[2]
+    else:
+        bands=list(range(1,17))
+    main(input_dt, bands=bands)
 

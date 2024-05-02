@@ -1,0 +1,6 @@
+pip install wget
+pip install suntime
+pip install s3fs
+pip install pyresample
+pip install satpy
+pip install pyspectral
