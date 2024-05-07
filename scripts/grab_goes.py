@@ -6,6 +6,7 @@ import s3fs
 import pytz
 from suntime import Sun
 from datetime import timedelta
+from helper_functions import *
 
 data_dir = './data/'
 
@@ -74,15 +75,6 @@ def check_sunrise_sunset_lat_lon(dt, lat, lon):
     if sunset < dt:
         raise ValueError('your request was after sunset at ({}, {}) on {}, set sun_check=False to grab data out side of daylight'.format(lat, lon, dt) )
 
-def get_dt_str(dt):
-    hr = dt.hour
-    hr = str(hr).zfill(2)
-    tt = dt.timetuple()
-    dn = tt.tm_yday
-    dn = str(dn).zfill(3)
-    yr = dt.year
-    return hr, dn, yr
-
 def get_filelist(dt, fs, lat, lon, sat_num, product, scope, bands):
     hr, dn, yr = get_dt_str(dt)
     full_filelist = fs.ls("noaa-goes{}/{}{}/{}/{}/{}/".format(sat_num, product, 'C', yr, dn, hr))
@@ -96,15 +88,7 @@ def get_filelist(dt, fs, lat, lon, sat_num, product, scope, bands):
     use_fns = get_closest_file(full_filelist, dt, sat_num, bands)
     return use_fns
 
-def get_dt(input_dt):
-    fmt = '%Y/%m/%d %H:%M'
-    dt = datetime.strptime(input_dt, fmt)
-    dt = pytz.utc.localize(dt)
-    return dt
-
-def download_goes(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scope='C', check_sun=True, bands=list(range(1,17))):
-
-    dt = get_dt(input_dt)
+def download_goes(dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scope='C', check_sun=True, bands=list(range(1,17))):
     # will check sunrise for specified lat/lon
     if check_sun and lat and lon:
         check_sunrise_sunset_lat_lon(dt, lat, lon)
@@ -137,8 +121,8 @@ def main(input_dt, lat=None, lon=None, sat_num='16', product='ABI-L1b-Rad', scop
     sat_nums = ['16', '17', '18']
     if sat_num not in sat_nums:
         raise ValueError('sat_num value of {} is invalid. choose 16 for GOES-EAST and 17 or 18 for GOES-WEST'.format(sat_num))
-    return download_goes(input_dt, lat, lon, sat_num, product, scope, check_sun, bands)
-
+    dt = pytz.utc.localize(datetime.strptime(input_dt, '%Y/%m/%d %H:%M'))
+    return download_goes(dt, lat, lon, sat_num, product, scope, check_sun, bands)
 
 #if __name__ == '__main__':
 #    lat = sys.argv[2]

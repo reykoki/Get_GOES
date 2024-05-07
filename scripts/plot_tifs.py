@@ -1,17 +1,17 @@
 from collections import Counter
 import matplotlib.pyplot as plt
-
 import math
 from glob import glob
 import numpy as np
 import skimage
 from datetime import datetime
 
+
 def get_lat_lon(coords_fn):
     lat_lon = skimage.io.imread(coords_fn, plugin='tifffile')
     lat = lat_lon[:,:,0]
     lon = lat_lon[:,:,1]
-    return lat[::63,0], lon[-1,::63]
+    return lat[::int(np.ceil(lat_lon.shape[0]/5)),0], lon[-1,::int(np.ceil(lat_lon.shape[0]/5))]
 
 def get_data(fn, data_loc="./sample_data/"):
     data_fn = glob(data_loc + "data/" + fn)[0]
@@ -69,8 +69,13 @@ def get_fns_from_input_dt(date_str, data_loc, sat_num):
     fns.sort()
     return fns
 
-def plot_all_bands(input_start, data_loc="./data/", sat_num=None):
-    fns = get_fns_from_input_dt(input_start, data_loc, sat_num)
+def normalize(data):
+    return (data - np.nanmin(data)) / (np.nanmax(data) - np.nanmin(data))
+
+def plot_all_bands(fn_head, data_loc="./data/", sat_num=None):
+    #fns = get_fns_from_input_dt(input_start, data_loc, sat_num)
+    fns = glob("{}data/C[01]*{}*.tif".format(data_loc, fn_head))
+    fns.sort()
     check_same_time(fns)
     if len(fns) == 1:
         plot_band(fns[0])
@@ -81,6 +86,7 @@ def plot_all_bands(input_start, data_loc="./data/", sat_num=None):
         for idx, fn in enumerate(fns):
             band = fn.split('_')[0]
             data = skimage.io.imread(fn, plugin='tifffile')
+            data = normalize(data)
             ax[idx].imshow(data, cmap='Greys_r')
             ax[idx].set_yticks([])
             ax[idx].set_xticks([])
@@ -92,6 +98,7 @@ def plot_all_bands(input_start, data_loc="./data/", sat_num=None):
                     fn = fns.pop(0)
                     band = fn.split('/')[-1].split('_')[0]
                     data = skimage.io.imread(fn, plugin='tifffile')
+                    data = normalize(data)
                     ax[row][col].imshow(data, cmap='Greys_r')
                     ax[row][col].set_yticks([])
                     ax[row][col].set_xticks([])
@@ -106,17 +113,17 @@ def plot_all_bands(input_start, data_loc="./data/", sat_num=None):
     plt.suptitle(get_datetime_from_fn(fn), fontsize=26)
     plt.show()
 
-def plot_composite(composite, start_input, sat_num,  data_loc="./data/"):
-    data_fn = glob("{}data/{}_G{}_*s{}*.tif".format(data_loc, composite, sat_num, start_input))[0]
-    coords_fn = glob("{}coords/G{}_*s{}*.tif".format(data_loc, sat_num, start_input))[0]
+def plot_composite(composite, fn_head, data_loc="./data/"):
+    data_fn = glob("{}data/{}_{}*.tif".format(data_loc, composite, fn_head))[0]
+    coords_fn = glob("{}coords/{}.tif".format(data_loc, fn_head))[0]
     print(get_datetime_from_fn(coords_fn))
     RGB = skimage.io.imread(data_fn, plugin='tifffile')
     lat, lon = get_lat_lon(coords_fn)
     plt.figure(figsize=(8, 6),dpi=100)
     plt.imshow(RGB)
-    plt.yticks(np.linspace(0,255,5), np.round(lat,2), fontsize=12)
+    plt.yticks(np.linspace(0,RGB.shape[0]-1,5), np.round(lat,2), fontsize=12)
     plt.ylabel('latitude (degrees)', fontsize=16)
-    plt.xticks(np.linspace(0,255,5), np.round(lon,2), fontsize=12)
+    plt.xticks(np.linspace(0,RGB.shape[0]-1,5), np.round(lon,2), fontsize=12)
     plt.xlabel('longitude (degrees)', fontsize=16)
     plt.title(composite,fontsize=24)
     plt.tight_layout(pad=0)
@@ -127,19 +134,22 @@ def plot_band(fn, data_loc="./data/"):
     coords_fn = data_loc + "coords/" + 'G' + data_fns[0].split('_G')[-1]
     band = fn.split('_')[0]
     band_data = skimage.io.imread(data_fn, plugin='tifffile')
+    band_data = normalize(band_data)
     lat, lon = get_lat_lon(coords_fn)
     plt.figure(figsize=(8, 6),dpi=100)
     plt.imshow(band_data, cmap='Greys_r')
-    plt.yticks(np.linspace(0,255,5), np.round(lat,2), fontsize=12)
+    plt.yticks(np.linspace(0,RGB.shape[0]-1,5), np.round(lat,2), fontsize=12)
     plt.ylabel('latitude (degrees)', fontsize=16)
-    plt.xticks(np.linspace(0,255,5), np.round(lon,2), fontsize=12)
+    plt.xticks(np.linspace(0,RGB.shape[0]-1,5), np.round(lon,2), fontsize=12)
     plt.xlabel('longitude (degrees)', fontsize=16)
     plt.title(band,fontsize=24)
     plt.tight_layout(pad=0)
     plt.show()
 
 def main(data_fns):
-    plot_all_bands(input_start)
+    #plot_all_bands(input_start)
+    #plot_all_bands('G16_s20232672101174_e20232672103547_40.0_-105.27')
+    plot_band('C03_G16_s20232672101174_e20232672103547_40.0_-105.27.tif', data_loc="./data/")
     #for data_fn in data_fns:
     #    plot_band(data_fn)
 
