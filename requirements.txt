@@ -1,7 +1,6 @@
 cartopy
 geopandas
 matplotlib
-matplotlib
 numpy
 pandas
 pyproj
@@ -10,6 +9,7 @@ pytz
 s3fs
 satpy
 scikit-image
+pyspectral
 suntime
 wget
 zarr
