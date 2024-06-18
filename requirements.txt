@@ -13,3 +13,4 @@ pyspectral
 suntime
 wget
 zarr
+rasterio
