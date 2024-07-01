@@ -1,4 +1,4 @@
-import pandas as pd
+import cartopy.crs as ccrs
 import sys
 import pytz
 from pyresample import create_area_def
@@ -8,104 +8,57 @@ import matplotlib.pyplot as plt
 import numpy as np
 from glob import glob
 from satpy import Scene
+from helper_functions import *
 
 data_dir = './data/'
 
-
-def get_dt_str(dt):
-    hr = dt.hour
-    hr = str(hr).zfill(2)
-    tt = dt.timetuple()
-    dn = tt.tm_yday
-    dn = str(dn).zfill(3)
-    yr = dt.year
-    return hr, dn, yr
-
-def get_dt(input_dt):
-    fmt = '%Y/%m/%d %H:%M'
-    dt = datetime.strptime(input_dt, fmt)
-    dt = pytz.utc.localize(dt)
-    return dt
-
-def get_fns(dt):
-    hr, dn, yr = get_dt_str(dt)
-    goes_dir = data_dir + 'goes/'
-    fns = glob(goes_dir + '*C0[123]*_s{}{}{}*'.format(yr,dn,hr))
-    print(fns)
-    return fns
-
-def get_rgb(corr_data):
-    # corrected is in RGB order
-    R = corr_data[0][0]
-    G = corr_data[0][1]
-    B = corr_data[0][2]
+def get_RGB(scn, composite):
+    data = scn.save_dataset(composite[0], compute=False)
+    R = data[0][0]
+    G = data[0][1]
+    B = data[0][2]
+    # reorder before computing for plotting
     RGB = np.dstack([R, G, B])
+    RGB = RGB.compute()
     return RGB
 
-
-def plot_data(input_dt):
-    dt = get_dt(input_dt)
-    fns = get_fns(dt)
-
-    scn = Scene(reader='abi_l1b', filenames=fns)
-
-    composite = 'cimss_true_color_sunz_rayleigh'
-    scn.load([composite])
-
-    my_area = create_area_def(area_id='lccCONUS',
-                              description='Lambert conformal conic for the contiguous US',
-                              projection="+proj=lcc +lat_1=33 +lat_2=45 +lat_0=39 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83 +units=m +no_defs",
-                              resolution=1000,
-                              #entire US
-                              area_extent=[-2.4e6, -1.5e6, 2.3e6, 1.4e6]
+def get_scn(fns, to_load, extent, res, proj, reader='abi_l1b'):
+    scn = Scene(reader=reader, filenames=fns)
+    scn.load(to_load, generate=False)
+    my_area = create_area_def(area_id='my_area',
+                              projection=proj,
+                              resolution=res,
+                              area_extent=extent
                               )
-
-    new_scn = scn.resample(my_area, cache_dir='cache_dir')
-    lcc_proj = new_scn[composite].attrs['area'].to_cartopy_crs()
-    geos_proj = scn['C01'].attrs['area'].to_cartopy_crs()
-
-    corr_data = new_scn.save_dataset('cimss_true_color_sunz_rayleigh', compute=False)
-    RGB = get_rgb(corr_data)
-
-    scan_start = new_scn[composite].attrs['start_time']
-    scan_end = new_scn[composite].attrs['end_time']
-    print('start of satellite scan: ', scan_start)
-    print('end of satellite scan: ', scan_end)
-
-    state_shape = './data/shape_files/cb_2018_us_state_500k.shp'
-
-    states = geopandas.read_file(state_shape)
-    states = states.to_crs(geos_proj)
-
-    #t_0 = int("{:%H%M}".format(scan_start))
-    #t_f = int("{:%H%M}".format(scan_end))
-    t_0 = pytz.utc.localize(scan_start)
-    t_f = pytz.utc.localize(scan_end)
-    yr_day = int("{:%Y%j}".format(scan_end))
-    geos_x = scn['C01'].coords['x']
-    geos_y = scn['C01'].coords['y']
-
-    states = states.to_crs(lcc_proj)
-
-    x = new_scn[composite].coords['x']
-    y = new_scn[composite].coords['y']
-
-    fig = plt.figure(figsize=(15, 12))
-    ax = fig.add_subplot(1, 1, 1, projection=lcc_proj)
-
-    ax.imshow(RGB, origin='upper', extent=(x.min(), x.max(), y.min(), y.max()))
-    states.boundary.plot(ax=ax, edgecolor='white', linewidth=.25)
-
-    plt.axis('off')
-    plt.subplots_adjust(top = 1, bottom = 0, right = 1, left = 0, hspace = 0, wspace = 0)
-    plt.margins(0,0)
-    plt.savefig('conus.png')
-
-    plt.show()
+    new_scn = scn.resample(my_area)
     return new_scn
 
+def plot_CONUS(data, crs):
+    states = get_states(crs)
+    fig = plt.figure(figsize=(15, 12))
+    ax = plt.axes(projection=crs)
+    plt.imshow(data, transform=crs, extent=crs.bounds, origin='upper')
+    states.boundary.plot(ax=ax, edgecolor='white', linewidth=.25)
+    plt.axis('off')
+    fig.tight_layout()
+    #plt.savefig('conus.png')
+    plt.show()
+
+def get_RGB_CONUS_scn(input_dt):
+    dt = get_dt(input_dt)
+    fns = get_fns_from_dt(dt)
+    composite = ['cimss_true_color_sunz_rayleigh']
+    lcc_proj = ccrs.LambertConformal(central_longitude=262.5, central_latitude=38.5, standard_parallels=(38.5, 38.5), globe=ccrs.Globe(semimajor_axis=6371229, semiminor_axis=6371229))
+    extent=[-2.4e6, -1.5e6, 2.3e6, 1.4e6] # CONUS
+    res = 5000 # 5km resolution
+    scn = get_scn(fns, composite, extent, res, lcc_proj)
+    RGB = get_RGB(scn, composite)
+    crs = scn[composite[0]].attrs['area'].to_cartopy_crs()
+    plot_CONUS(RGB, crs)
+    return scn
+
 def main(input_dt):
-    plot_data(input_dt)
+    get_RGB_CONUS_scn(input_dt)
 
 if __name__ == '__main__':
     input_dt = sys.argv[1]
