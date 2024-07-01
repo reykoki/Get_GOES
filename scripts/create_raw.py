@@ -83,21 +83,6 @@ def get_fn_head(band, sat_fns, lat, lon):
     matching_band_fn = [s for s in sat_fns if band in s]
     fn_head = matching_band_fn.split(band).split('_c')+'_'+lat+'_'+lon
 
-def create_data(sat_fns, lat, lon, remove_goes_files=False):
-    fn_head = 'G' + sat_fns[0].split('_G')[-1].split('_c')[0]+'_'+lat+'_'+lon
-    extent = get_extent(lat, lon)
-    bands = get_bands_from_fns(sat_fns)
-    old_scn, scn = get_scn(sat_fns, bands, extent)
-    lons, lats = scn[bands[0]].attrs['area'].get_lonlats()
-    for band in bands:
-        save_data(scn[band].data, band, fn_head)
-
-    save_coords(lats, lons, fn_head)
-    if remove_goes_files:
-        remove_goes(fn_head)
-    return fn_head
-
-
 # remove large satellite files and the tif files created during corrections
 def remove_goes(fn_head):
     print("REMOVING GOES FILES")
