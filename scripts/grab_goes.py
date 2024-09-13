@@ -33,9 +33,9 @@ def get_additional_band_file(band, fn_str, fns):
 
 def get_closest_file(fns, dt, sat_num, bands):
     use_fns = []
-    band_init = 'C'+str(bands.pop(0)).zfill(2)
+    band_init = 'C'+str(bands[0]).zfill(2)
     best_band_fn, fn_str = get_first_closest_file(band_init, fns, dt, sat_num)
-    use_fns.append(best_band_fn)
+    #use_fns.append(best_band_fn)
     for band in bands:
         band = 'C'+str(band).zfill(2)
         best_band_fn = get_additional_band_file(band, fn_str, fns)
@@ -56,8 +56,8 @@ def check_sunrise_sunset(dt):
     print('for the datetime {}:\nsunrise is at: {}\nsunset is at: {}'.format(dt, sunrise, sunset))
     if sunrise > sunset:
         sunset = west.get_sunset_time(dt + timedelta(days=1))
-    if sunrise > dt or sunset < dt:
-        raise ValueError('your request is before/after the sunrise/sunset for conus on {}'.format(dt) )
+    #if sunrise > dt or sunset < dt:
+    #    raise ValueError('your request is before/after the sunrise/sunset for conus on {}'.format(dt) )
     else:
         sat_num = '16' # closer to sunset
     return sunrise, sunset
