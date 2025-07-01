@@ -82,6 +82,7 @@ def plot_all_bands(fn_head, data_loc="./data/", sat_num=None):
         return
     n_row, n_col = get_num_col_row(len(fns))
     fig, ax = plt.subplots(n_row, n_col, figsize=(n_col*3,n_row*3))
+    band_to_mu = {'C01': '0.47', 'C02': '0.64', 'C03': '0.86', 'C04': '1.37', 'C05': '1.61', 'C06': '2.24', 'C07': '3.9', 'C08': '6.2', 'C09': '6.9' , 'C10': '7.3' , 'C11': '8.5' , 'C12': '9.6' , 'C13': '10.3', 'C14': '11.2', 'C15': '12.3', 'C16': '13.3'}
     if n_row == 1:
         for idx, fn in enumerate(fns):
             band = fn.split('_')[0]
@@ -97,12 +98,13 @@ def plot_all_bands(fn_head, data_loc="./data/", sat_num=None):
                 for col in range(n_col):
                     fn = fns.pop(0)
                     band = fn.split('/')[-1].split('_')[0]
+                    mu = band_to_mu[band]
                     data = skimage.io.imread(fn, plugin='tifffile')
                     data = normalize(data)
                     ax[row][col].imshow(data, cmap='Greys_r')
                     ax[row][col].set_yticks([])
                     ax[row][col].set_xticks([])
-                    ax[row][col].set_title(band,fontsize=20)
+                    ax[row][col].set_title(r'{} $\mu m$'.format(mu),fontsize=14)
                     if len(fns) == 0:
                         break
     if col < n_col-1:
